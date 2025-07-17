@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドラゴンクエストモンスターズ 配合リスト</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, Osaka, 'MS PGothic', arial, helvetica, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container-fluid {
+            padding: 20px;
+        }
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table th {
+            background-color: #343a40;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .badge {
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        .system-badge {
+            background-color: #6c757d;
+        }
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #343a40;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .pattern-group {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        .blood-line {
+            color: #007bff;
+        }
+        .partner {
+            color: #007bff;
+        }
+        .clickable-parent {
+            cursor: pointer;
+            text-decoration: underline;
+            transition: opacity 0.2s;
+            color: #007bff;
+        }
+        .clickable-parent:hover {
+            opacity: 0.7;
+        }
+        .modal-body .table {
+            margin-bottom: 0;
+        }
+        .no-patterns {
+            color: #6c757d;
+            font-style: italic;
+        }
+        .floating-window {
+            position: fixed;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            min-width: 400px;
+            max-width: 600px;
+            z-index: 1000;
+            resize: both;
+            overflow: auto;
+        }
+        .window-header {
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .window-title {
+            font-weight: bold;
+            margin: 0;
+            font-size: 0.9em;
+        }
+        .window-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .window-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .window-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .window-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .window-history {
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 10px 15px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .history-item {
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-bottom: 2px;
+            color: #6c757d;
+        }
+        .history-item:hover {
+            background: #e9ecef;
+        }
+        .window-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
+            z-index: 999;
+            pointer-events: none;
+        }
+        .filter-btn {
+            font-size: 0.8em;
+            padding: 5px 12px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        .filter-btn.active {
+            background-color: #007bff !important;
+            border-color: #007bff !important;
+            color: white !important;
+        }
+        .filter-btn:not(.active) {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: #6c757d;
+        }
+        .filter-btn:not(.active):hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            color: #495057;
+        }
+        /* 系統フィルタをスクロール時にトップ固定 */
+        .sticky-system-filter {
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+            background: #f8f9fa;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 0 !important;
+            border-bottom: 1px solid #dee2e6;
+        }
+        /* .ui-settings-bar の不要な空ルール削除 */
+        .ui-settings-bar * {
+            font-size: 15px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="title">ドラゴンクエストモンスターズ 配合リスト</h1>
+
+        <div class="card">
+            <div class="card-body">
+                <!-- 系統フィルタボタン -->
+                <div class="sticky-system-filter">
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3 ui-settings-bar" id="uiSettingsBar">
+                        <div>
+                            <label for="windowWidth" class="form-label mb-0 me-1">ウインドウ幅</label>
+                            <input type="range" id="windowWidth" min="150" max="800" value="400" step="10" style="width:120px;">
+                            <span id="windowWidthValue">400</span>px
+                        </div>
+                        <div>
+                            <label for="windowHeight" class="form-label mb-0 me-1">ウインドウ高</label>
+                            <input type="range" id="windowHeight" min="100" max="700" value="400" step="10" style="width:120px;">
+                            <span id="windowHeightValue">400</span>px
+                        </div>
+                        <div>
+                            <label for="fontSize" class="form-label mb-0 me-1">文字サイズ</label>
+                            <input type="range" id="fontSize" min="12" max="24" value="16" step="1" style="width:120px;">
+                            <span id="fontSizeValue">16</span>px
+                        </div>
+                    </div>
+                    <h6 class="mb-2">系統フィルタ:</h6>
+                    <div id="systemFilterButtons" class="d-flex flex-wrap gap-2">
+                        <!-- ボタンはJavaScriptで動的に生成 -->
+                    </div>
+                </div>
+                
+                <table id="breedingTable" class="table">
+                    <thead>
+                        <tr>
+                            <th>子</th>
+                            <th>系統</th>
+                            <th>血統</th>
+                            <th>相手</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- データはJavaScriptで動的に挿入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- フローティングウィンドウコンテナ -->
+    <div id="windowContainer"></div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // ウインドウサイズ・文字サイズUIのイベント
+        document.addEventListener('DOMContentLoaded', function() {
+            const widthInput = document.getElementById('windowWidth');
+            const heightInput = document.getElementById('windowHeight');
+            const fontSizeInput = document.getElementById('fontSize');
+            const widthValue = document.getElementById('windowWidthValue');
+            const heightValue = document.getElementById('windowHeightValue');
+            const fontSizeValue = document.getElementById('fontSizeValue');
+
+            // 値表示
+            widthInput.addEventListener('input', function() {
+                widthValue.textContent = widthInput.value;
+                document.querySelectorAll('.floating-window').forEach(win => {
+                    win.style.minWidth = widthInput.value + 'px';
+                    win.style.maxWidth = widthInput.value + 'px';
+                });
+            });
+            heightInput.addEventListener('input', function() {
+                heightValue.textContent = heightInput.value;
+                document.querySelectorAll('.floating-window').forEach(win => {
+                    win.style.maxHeight = heightInput.value + 'px';
+                });
+            });
+            fontSizeInput.addEventListener('input', function() {
+                fontSizeValue.textContent = fontSizeInput.value;
+                document.getElementById('breedingTable').style.fontSize = fontSizeInput.value + 'px';
+                document.querySelectorAll('.floating-window').forEach(win => {
+                    win.style.fontSize = fontSizeInput.value + 'px';
+                });
+            });
+
+            // 初期値反映
+            widthValue.textContent = widthInput.value;
+            heightValue.textContent = heightInput.value;
+            fontSizeValue.textContent = fontSizeInput.value;
+        });
+        let breedingData = []; // グローバルに配合データを保存
+        let windowCounter = 0; // ウィンドウの一意ID用
+        let windows = new Map(); // アクティブなウィンドウを管理
+        let dragState = { isDragging: false, currentWindow: null, offset: { x: 0, y: 0 } };
+        let dataTable = null; // DataTableインスタンスを保存
+        let currentFilter = 'all'; // 現在のフィルタ状態
+        
+        // 系統フィルタボタンを生成
+        function createSystemFilterButtons() {
+            // JSONの出現順で系統を取得（ソートしない）
+            const systems = [];
+            const seen = new Set();
+            breedingData.forEach(monster => {
+                if (!seen.has(monster.系統)) {
+                    systems.push(monster.系統);
+                    seen.add(monster.系統);
+                }
+            });
+            
+            const buttonContainer = document.getElementById('systemFilterButtons');
+            
+            // 全て表示ボタン
+            let buttonsHTML = `<button class="btn filter-btn active" onclick="filterBySystem('all')">全て表示</button>`;
+            
+            // 各系統ボタン（JSONの出現順）
+            systems.forEach(system => {
+                buttonsHTML += `<button class="btn filter-btn" onclick="filterBySystem('${system}')">${system}</button>`;
+            });
+            
+            buttonContainer.innerHTML = buttonsHTML;
+        }
+        
+        // 系統でフィルタ
+        function filterBySystem(system) {
+            currentFilter = system;
+            
+            // ボタンのアクティブ状態を更新
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // DataTableでフィルタ
+            if (dataTable) {
+                if (system === 'all') {
+                    dataTable.column(1).search('').draw(); // 系統列をクリア
+                } else {
+                    dataTable.column(1).search(system).draw(); // 系統列で検索
+                }
+            }
+        }
+        
+        // フローティングウィンドウを作成
+        function createFloatingWindow(parentName, history = [], position = null) {
+            const patterns = findBreedingPatterns(parentName);
+            const windowId = `window-${++windowCounter}`;
+            const newHistory = [...history, parentName];
+
+            // ウインドウサイズ取得
+            const widthInput = document.getElementById('windowWidth');
+            const heightInput = document.getElementById('windowHeight');
+            const minWidth = widthInput ? widthInput.value : 150;
+            const maxWidth = widthInput ? widthInput.value : 150;
+            const maxHeight = heightInput ? heightInput.value : 100;
+
+            // ウィンドウの初期位置を計算
+            let left, top;
+            if (position) {
+                left = position.left;
+                top = position.top;
+            } else {
+                // デフォルト位置（重ならないように）
+                const offset = windows.size * 30;
+                left = 100 + offset;
+                top = 100 + offset;
+            }
+
+            // ウィンドウHTML生成
+            const windowHTML = `
+                <div class="floating-window" id="${windowId}" style="left: ${left}px; top: ${top}px; min-width: ${minWidth}px; max-width: ${maxWidth}px; max-height: ${maxHeight}px;">
+                    <div class="window-header" onmousedown="startDrag(event, '${windowId}')">
+                        <h6 class="window-title">${parentName}</h6>
+                        <div class="window-controls">
+                            <button class="window-btn" onclick="minimizeWindow('${windowId}')" title="最小化">_</button>
+                            <button class="window-btn" onclick="closeWindow('${windowId}')" title="閉じる">×</button>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        ${generatePatternTable(patterns, windowId)}
+                    </div>
+                    ${generateHistorySection(newHistory, windowId)}
+                </div>
+            `;
+
+            // ウィンドウをDOMに追加
+            document.getElementById('windowContainer').insertAdjacentHTML('beforeend', windowHTML);
+
+            // ウィンドウを管理マップに追加
+            windows.set(windowId, {
+                parentName,
+                history: newHistory,
+                isMinimized: false
+            });
+
+            // 最前面に移動
+            bringToFront(windowId);
+        }
+        
+        // パターンテーブル生成
+        function generatePatternTable(patterns, windowId) {
+            if (patterns.length === 0) {
+                return `<p class="no-patterns">配合パターンが見つかりません。</p>`;
+            }
+            
+            let tableHTML = `
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>血統</th>
+                            <th>相手</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            patterns.forEach(pattern => {
+                pattern.patterns.forEach(p => {
+                    let bloodlineHTML = '';
+                    if (Array.isArray(p.血統)) {
+                        bloodlineHTML = p.血統
+                            .map(b => {
+                                if (b && b !== '（なし）') {
+                                    return `<span class="blood-line clickable-parent" onclick="showParentPatterns('${b}', '${windowId}', 'bloodline')">${b}</span>`;
+                                } else {
+                                    return `<span class="blood-line">${b}</span>`;
+                                }
+                            })
+                            .join('<br>');
+                    } else {
+                        if (p.血統 && p.血統 !== '（なし）') {
+                            bloodlineHTML = `<span class="blood-line clickable-parent" onclick="showParentPatterns('${p.血統}', '${windowId}', 'bloodline')">${p.血統}</span>`;
+                        } else {
+                            bloodlineHTML = `<span class="blood-line">${p.血統}</span>`;
+                        }
+                    }
+                    
+                    let partnerHTML = '';
+                    if (Array.isArray(p.相手)) {
+                        partnerHTML = p.相手
+                            .map(partner => {
+                                if (partner && partner !== '') {
+                                    return `<span class="partner clickable-parent" onclick="showParentPatterns('${partner}', '${windowId}', 'partner')">${partner}</span>`;
+                                } else {
+                                    return `<span class="partner">${partner}</span>`;
+                                }
+                            })
+                            .join('<br>');
+                    } else {
+                        if (p.相手 && p.相手 !== '') {
+                            partnerHTML = `<span class="partner clickable-parent" onclick="showParentPatterns('${p.相手}', '${windowId}', 'partner')">${p.相手}</span>`;
+                        } else {
+                            partnerHTML = `<span class="partner">${p.相手}</span>`;
+                        }
+                    }
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${bloodlineHTML}</td>
+                            <td>${partnerHTML}</td>
+                        </tr>
+                    `;
+                });
+            });
+            
+            tableHTML += '</tbody></table>';
+            return tableHTML;
+        }
+        
+        // 履歴セクション生成
+        function generateHistorySection(history, windowId) {
+            if (history.length <= 1) return '';
+            
+            let historyHTML = '<div class="window-history"><small><strong>履歴:</strong></small><br>';
+            history.slice(0, -1).forEach((item, index) => {
+                historyHTML += `<div class="history-item" onclick="showParentPatterns('${item}', '${windowId}', 'history')">${item}</div>`;
+            });
+            historyHTML += '</div>';
+            return historyHTML;
+        }
+        
+        // 親のパターンを表示（更新版）
+        function showParentPatterns(parentName, sourceWindowId = null, type = 'default') {
+            const history = sourceWindowId && windows.has(sourceWindowId) 
+                ? windows.get(sourceWindowId).history 
+                : [];
+            
+            let position = null;
+            
+            // 位置計算（木構造になるように）
+            if (sourceWindowId && type !== 'history') {
+                const sourceWindow = document.getElementById(sourceWindowId);
+                if (sourceWindow) {
+                    const rect = sourceWindow.getBoundingClientRect();
+                    const windowWidth = 400; // ウィンドウの最小幅
+                    const offset = 20; // ウィンドウ間の余白
+                    
+                    if (type === 'bloodline') {
+                        // 血統：左側に表示
+                        position = {
+                            left: Math.max(10, rect.left - windowWidth - offset),
+                            top: rect.top + 50
+                        };
+                    } else if (type === 'partner') {
+                        // 相手：右側に表示
+                        position = {
+                            left: rect.right + offset,
+                            top: rect.top + 50
+                        };
+                    }
+                }
+            }
+            
+            createFloatingWindow(parentName, history, position);
+        }
+        
+        // ウィンドウを閉じる
+        function closeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            if (windowElement) {
+                windowElement.remove();
+                windows.delete(windowId);
+            }
+        }
+        
+        // ウィンドウを最小化
+        function minimizeWindow(windowId) {
+            const windowElement = document.getElementById(windowId);
+            const windowData = windows.get(windowId);
+            
+            if (windowElement && windowData) {
+                if (windowData.isMinimized) {
+                    // 復元
+                    windowElement.style.height = 'auto';
+                    windowElement.querySelector('.window-content').style.display = 'block';
+                    const historySection = windowElement.querySelector('.window-history');
+                    if (historySection) historySection.style.display = 'block';
+                    windowData.isMinimized = false;
+                } else {
+                    // 最小化
+                    windowElement.style.height = 'auto';
+                    windowElement.querySelector('.window-content').style.display = 'none';
+                    const historySection = windowElement.querySelector('.window-history');
+                    if (historySection) historySection.style.display = 'none';
+                    windowData.isMinimized = true;
+                }
+            }
+        }
+        
+        // ウィンドウを最前面に移動
+        function bringToFront(windowId) {
+            const windowElement = document.getElementById(windowId);
+            if (windowElement) {
+                // 他のウィンドウのz-indexを下げる
+                document.querySelectorAll('.floating-window').forEach(win => {
+                    win.style.zIndex = '1000';
+                });
+                // 選択されたウィンドウを最前面に
+                windowElement.style.zIndex = '1001';
+            }
+        }
+        
+        // ドラッグ開始
+        function startDrag(event, windowId) {
+            dragState.isDragging = true;
+            dragState.currentWindow = windowId;
+            const windowElement = document.getElementById(windowId);
+            const rect = windowElement.getBoundingClientRect();
+            dragState.offset.x = event.clientX - rect.left;
+            dragState.offset.y = event.clientY - rect.top;
+            
+            bringToFront(windowId);
+            event.preventDefault();
+        }
+        
+        // マウスイベントリスナー
+        document.addEventListener('mousemove', (event) => {
+            if (dragState.isDragging && dragState.currentWindow) {
+                const windowElement = document.getElementById(dragState.currentWindow);
+                if (windowElement) {
+                    const newLeft = event.clientX - dragState.offset.x;
+                    const newTop = event.clientY - dragState.offset.y;
+                    windowElement.style.left = Math.max(0, newLeft) + 'px';
+                    windowElement.style.top = Math.max(0, newTop) + 'px';
+                }
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            dragState.isDragging = false;
+            dragState.currentWindow = null;
+        });
+        
+        // ウィンドウクリック時に最前面に移動
+        document.addEventListener('click', (event) => {
+            const windowElement = event.target.closest('.floating-window');
+            if (windowElement) {
+                bringToFront(windowElement.id);
+            }
+        });
+        
+        // 指定されたモンスター名の配合パターンを検索
+        function findBreedingPatterns(monsterName) {
+            return breedingData.filter(monster => monster.子 === monsterName);
+        }
+        
+        // JSONデータを読み込んで表に表示
+        async function loadBreedingData() {
+            try {
+                const response = await fetch('./data/parsed_data.json');
+                const data = await response.json();
+                breedingData = data; // グローバル変数に保存
+                
+                const tableBody = document.getElementById('tableBody');
+                
+                data.forEach(monster => {
+                    monster.patterns.forEach((pattern, index) => {
+                        const row = document.createElement('tr');
+                        
+                        // 子の名前（各行に表示）
+                        const childCell = document.createElement('td');
+                        childCell.innerHTML = `<span class="clickable-parent" onclick="showParentPatterns('${monster.子}', null, 'main')">${monster.子}</span>`;
+                        
+                        // 系統（各行に表示）
+                        const systemCell = document.createElement('td');
+                        systemCell.innerHTML = `<span class="badge system-badge">${monster.系統}</span>`;
+                        
+                        // 血統
+                        const bloodlineCell = document.createElement('td');
+                        if (Array.isArray(pattern.血統)) {
+                            bloodlineCell.innerHTML = pattern.血統
+                                .map(b => {
+                                    if (b && b !== '（なし）') {
+                                        return `<span class="blood-line clickable-parent" onclick="showParentPatterns('${b}', null, 'main')">${b}</span>`;
+                                    } else {
+                                        return `<span class="blood-line">${b}</span>`;
+                                    }
+                                })
+                                .join('<br>');
+                        } else {
+                            if (pattern.血統 && pattern.血統 !== '（なし）') {
+                                bloodlineCell.innerHTML = `<span class="blood-line clickable-parent" onclick="showParentPatterns('${pattern.血統}', null, 'main')">${pattern.血統}</span>`;
+                            } else {
+                                bloodlineCell.innerHTML = `<span class="blood-line">${pattern.血統}</span>`;
+                            }
+                        }
+                        
+                        // 相手
+                        const partnerCell = document.createElement('td');
+                        if (Array.isArray(pattern.相手)) {
+                            partnerCell.innerHTML = pattern.相手
+                                .map(p => {
+                                    if (p && p !== '') {
+                                        return `<span class="partner clickable-parent" onclick="showParentPatterns('${p}', null, 'main')">${p}</span>`;
+                                    } else {
+                                        return `<span class="partner">${p}</span>`;
+                                    }
+                                })
+                                .join('<br>');
+                        } else {
+                            if (pattern.相手 && pattern.相手 !== '') {
+                                partnerCell.innerHTML = `<span class="partner clickable-parent" onclick="showParentPatterns('${pattern.相手}', null, 'main')">${pattern.相手}</span>`;
+                            } else {
+                                partnerCell.innerHTML = `<span class="partner">${pattern.相手}</span>`;
+                            }
+                        }
+                        
+                        row.appendChild(childCell);
+                        row.appendChild(systemCell);
+                        row.appendChild(bloodlineCell);
+                        row.appendChild(partnerCell);
+                        
+                        tableBody.appendChild(row);
+                    });
+                });
+                
+                // 系統フィルタボタンを生成
+                createSystemFilterButtons();
+                
+                // DataTablesを初期化（全件表示、系統順）
+                dataTable = $('#breedingTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/ja.json'
+                    },
+                    pageLength: -1, // 全件表示
+                    lengthMenu: [[-1], ["全て"]],
+                    order: [], // ソートなし（JSONの順序を保持）
+                    ordering: false, // ソート機能を無効化
+                    dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                         '<"row"<"col-sm-12"tr>>' +
+                         '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                    responsive: true,
+                    paging: false, // ページングを無効化
+                    info: false // 件数情報を非表示
+                });
+                
+            } catch (error) {
+                console.error('データの読み込みエラー:', error);
+                document.getElementById('tableBody').innerHTML = 
+                    '<tr><td colspan="4" class="text-center text-danger">データの読み込みに失敗しました</td></tr>';
+            }
+        }
+        
+        // ページ読み込み完了後にデータを読み込み
+        document.addEventListener('DOMContentLoaded', loadBreedingData);
+    </script>
+</body>
+</html>
